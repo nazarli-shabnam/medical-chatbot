@@ -43,7 +43,7 @@ python store_index.py
 
 ```bash
 # Finally run the following command
-python app.py
+python app_hf.py
 ```
 
 Now,
