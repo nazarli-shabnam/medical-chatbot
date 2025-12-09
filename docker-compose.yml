@@ -1,0 +1,84 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: medical_chatbot_db
+    environment:
+      POSTGRES_USER: medicalbot
+      POSTGRES_PASSWORD: medicalbot_password
+      POSTGRES_DB: medical_chatbot
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medicalbot -d medical_chatbot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - medical_chatbot_network
+
+  app:
+    build: .
+    container_name: medical_chatbot_app
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgresql://medicalbot:medicalbot_password@db:5432/medical_chatbot
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - SECRET_KEY=${SECRET_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./data/uploads:/app/data/uploads
+      - ./app.py:/app/app.py
+      - ./src:/app/src
+      - ./templates:/app/templates
+      - ./static:/app/static
+    networks:
+      - medical_chatbot_network
+    command: >
+      sh -c "
+        echo 'Waiting for database to be ready...' &&
+        until pg_isready -h db -U medicalbot -d medical_chatbot; do
+          echo 'Database not ready, waiting...'
+          sleep 2
+        done &&
+        echo 'Database is ready!' &&
+        python -c 'from app import app, db; app.app_context().push(); db.create_all()' &&
+        python app.py
+      "
+
+  test:
+    build: .
+    container_name: medical_chatbot_test
+    environment:
+      - DATABASE_URL=postgresql://medicalbot:medicalbot_password@db:5432/medical_chatbot_test
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - SECRET_KEY=test-secret-key
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./:/app
+    networks:
+      - medical_chatbot_network
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        sleep 5 &&
+        pytest -v
+      "
+    profiles:
+      - test
+
+volumes:
+  postgres_data:
+
+networks:
+  medical_chatbot_network:
+    driver: bridge
