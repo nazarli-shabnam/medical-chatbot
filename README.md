@@ -1,133 +1,253 @@
-# Build-a-Complete-Medical-Chatbot-with-LLMs-LangChain-Pinecone-Flask-AWS
+# Medical Chatbot
 
-# How to run?
-### STEPS:
+A comprehensive medical chatbot application built with Flask, Gemini AI, Pinecone, and PostgreSQL. Features real-time chat with document-based RAG (Retrieval-Augmented Generation), source citations, conversation history, and advanced query processing.
 
-Clone the repository
+## 🚀 Quick Start
 
-```bash
-git clonehttps://github.com/entbappy/Build-a-Complete-Medical-Chatbot-with-LLMs-LangChain-Pinecone-Flask-AWS.git
+### Prerequisites
+
+- **Docker Desktop** installed ([Download here](https://www.docker.com/products/docker-desktop))
+- **Pinecone API Key** ([Get one here](https://www.pinecone.io/))
+- **Google Gemini API Key** ([Get one here](https://makersuite.google.com/app/apikey))
+
+### First Time Setup
+
+1. **Create `.env` file** in the project root:
+
+   ```ini
+   PINECONE_API_KEY=your_pinecone_key_here
+   GOOGLE_API_KEY=your_gemini_key_here
+   SECRET_KEY=change-this-to-random-string-in-production
+   GEMINI_MODEL=gemini-2.5-flash
+   ```
+
+2. **Start the application**:
+
+   ```bash
+   docker-compose up --build
+   ```
+
+3. **Open browser**: http://localhost:8080
+
+4. **Register an account** and start chatting!
+
+For detailed Docker setup and running instructions, see [DOCKER_SETUP.md](DOCKER_SETUP.md).
+
+## ✨ Features
+
+- ✅ **User Authentication** - Secure registration and login system
+- ✅ **Multi-Document Upload** - Upload and manage multiple PDF documents
+- ✅ **Real-time Chat** - Streaming responses with immediate feedback
+- ✅ **Source Citations** - Transparent source attribution with clickable citations
+- ✅ **Conversation History** - Persistent chat history per user
+- ✅ **User Feedback** - Thumbs up/down feedback system
+- ✅ **Advanced RAG** - Query rewriting and multi-hop reasoning
+- ✅ **Document Management** - View, manage, and delete uploaded documents
+
+## 🏗️ Architecture
+
+- **Backend**: Flask (Python 3.10)
+- **Database**: PostgreSQL 15 (Docker container)
+- **Vector Store**: Pinecone (384-dimensional embeddings)
+- **LLM**: Google Gemini (configurable model)
+- **Embeddings**: HuggingFace sentence-transformers (all-MiniLM-L6-v2)
+- **Frontend**: HTML/CSS/JavaScript with Bootstrap
+
+## 📁 Project Structure
+
+```
+medical-chatbot/
+├── app.py                  # Main Flask application
+├── docker-compose.yml      # Docker Compose configuration
+├── Dockerfile              # Application container definition
+├── requirements.txt        # Python dependencies
+├── .env                    # Environment variables (create this)
+├── src/                    # Source code
+│   ├── database.py        # Database models (User, Document, Conversation, etc.)
+│   ├── auth.py            # Authentication routes
+│   ├── helper.py          # Helper functions (PDF loading, text splitting)
+│   ├── prompt.py          # System prompts
+│   └── rag_advanced.py    # Advanced RAG features (query rewriting, multi-hop)
+├── tests/                  # Test suite
+│   ├── conftest.py        # Pytest fixtures
+│   ├── test_auth.py       # Authentication tests
+│   ├── test_chat_api.py   # Chat API tests
+│   ├── test_database.py   # Database model tests
+│   ├── test_documents_api.py  # Document management tests
+│   ├── test_feedback_api.py      # Feedback system tests
+│   ├── test_integration.py       # Integration tests
+│   └── test_rag_advanced.py      # Advanced RAG tests
+├── templates/              # HTML templates
+│   ├── base.html          # Base template with navbar
+│   ├── chat.html          # Chat interface
+│   ├── documents.html     # Document management page
+│   ├── login.html         # Login page
+│   └── register.html      # Registration page
+├── static/                 # CSS/JS files
+│   └── style.css          # Custom styles
+└── data/
+    └── uploads/           # Uploaded PDFs (persisted via Docker volume)
 ```
 
-(before all the steps do not forget to 'conda init powershell' in anaconda prompt)
+## 🔧 Configuration
 
-### STEP 01- Create a conda environment after opening the repository
+### Environment Variables
 
-```bash
-conda create -n medibot python=3.10 -y
-```
-
-```bash
-conda activate medibot
-```
-
-
-### STEP 02- install the requirements
-```bash
-pip install -r requirements.txt
-```
-
-
-### Create a `.env` file in the root directory and add your Pinecone & openai credentials as follows:
+Create a `.env` file in the project root with:
 
 ```ini
-PINECONE_API_KEY = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-OPENAI_API_KEY = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+# Required
+PINECONE_API_KEY=your_pinecone_api_key
+GOOGLE_API_KEY=your_gemini_api_key
+SECRET_KEY=your-random-secret-key-change-in-production
+
+# Optional (with defaults)
+GEMINI_MODEL=gemini-2.5-flash  # Default: gemini-2.5-flash
+DATABASE_URL=postgresql://medicalbot:medicalbot_password@db:5432/medical_chatbot  # Auto-set by docker-compose
 ```
 
+For detailed Docker setup instructions, see [DOCKER_SETUP.md](DOCKER_SETUP.md).
+
+## 🧪 Testing
+
+For comprehensive testing instructions, see [TESTING.md](TESTING.md).
+
+Quick start:
 
 ```bash
-# run the following command to store embeddings to pinecone
-python store_index.py
+# Run all tests
+docker-compose exec app pytest
+
+# Run with coverage
+docker-compose exec app pytest --cov=src --cov=app
 ```
 
-```bash
-# Finally run the following command
-python app_hf.py
-```
+## 🔌 API Endpoints
 
-Now,
-```bash
-open up localhost:
-```
+### Authentication
 
+- `GET /auth/login` - Login page
+- `POST /auth/login` - Login
+- `GET /auth/register` - Registration page
+- `POST /auth/register` - Register new user
+- `GET /auth/logout` - Logout
 
-### Techstack Used:
+### Chat
 
-- Python
-- LangChain
-- Flask
-- GPT
-- Pinecone
+- `GET /chat` - Chat interface
+- `POST /api/chat/stream` - Stream chat response (Server-Sent Events)
+  - Body: `{ "message": "...", "conversation_id": 123, "use_advanced_rag": false }`
 
+### Documents
 
+- `GET /documents` - Document management page
+- `POST /api/upload` - Upload new PDF document (multipart/form-data)
+- `DELETE /api/documents/<id>` - Delete document
 
-# AWS-CICD-Deployment-with-Github-Actions
+### Conversations
 
-## 1. Login to AWS console.
+- `GET /api/conversations` - Get user's conversations
+- `GET /api/conversations/<id>/messages` - Get messages for conversation
 
-## 2. Create IAM user for deployment
+### Feedback
 
-	#with specific access
+- `POST /api/feedback` - Submit feedback for a message
+  - Body: `{ "message_id": 123, "rating": "positive|negative", "comment": "..." }`
 
-	1. EC2 access : It is virtual machine
+## 🗄️ Database Schema
 
-	2. ECR: Elastic Container registry to save your docker image in aws
+- **User** - User accounts with authentication
+- **Document** - Uploaded PDF documents metadata
+- **DocumentChunk** - Chunk metadata for citations
+- **Conversation** - Chat conversations
+- **Message** - Individual messages in conversations
+- **Citation** - Source citations for messages
+- **Feedback** - User feedback on messages
 
+## 🚀 Advanced Features
 
-	#Description: About the deployment
+### Query Rewriting
 
-	1. Build docker image of the source code
+Automatically improves user queries for better document retrieval. Enabled by default in standard RAG mode.
 
-	2. Push your docker image to ECR
+### Multi-hop Reasoning
 
-	3. Launch Your EC2 
+Breaks down complex questions into sub-questions and retrieves information iteratively. Enable via the "Advanced RAG" toggle in the chat interface.
 
-	4. Pull Your image from ECR in EC2
+### Source Citations
 
-	5. Lauch your docker image in EC2
+Every response includes citations to source documents with:
 
-	#Policy:
+- Document name
+- Page number
+- Content preview
+- Clickable badges for easy navigation
 
-	1. AmazonEC2ContainerRegistryFullAccess
+## 🐛 Troubleshooting
 
-	2. AmazonEC2FullAccess
+### Gemini Model Not Found Error
 
-	
-## 3. Create ECR repo to store/save docker image
-    - Save the URI: 315865595366.dkr.ecr.us-east-1.amazonaws.com/medicalbot
+If you see `404 models/gemini-pro is not found`:
 
-	
-## 4. Create EC2 machine (Ubuntu) 
+1. **Check available models**:
 
-## 5. Open EC2 and Install docker in EC2 Machine:
-	
-	
-	#optinal
+   ```bash
+   docker-compose exec app python -c "
+   from google import generativeai as genai
+   import os
+   genai.configure(api_key=os.environ.get('GOOGLE_API_KEY'))
+   for model in genai.list_models():
+       if 'generateContent' in model.supported_generation_methods:
+           print(f'{model.name}')
+   "
+   ```
 
-	sudo apt-get update -y
+2. **Update `.env` file** with a model from the list:
 
-	sudo apt-get upgrade
-	
-	#required
+   ```ini
+   GEMINI_MODEL=gemini-2.5-flash  # or gemini-2.5-pro, gemini-pro-latest, etc.
+   ```
 
-	curl -fsSL https://get.docker.com -o get-docker.sh
+3. **Restart the app**:
+   ```bash
+   docker-compose restart app
+   ```
 
-	sudo sh get-docker.sh
+### File Upload Not Working
 
-	sudo usermod -aG docker ubuntu
+- Check that the upload folder exists and is writable
+- Verify file size is under 16MB
+- Check browser console for errors
+- Ensure you're logged in (authentication required)
 
-	newgrp docker
-	
-# 6. Configure EC2 as self-hosted runner:
-    setting>actions>runner>new self hosted runner> choose os> then run command one by one
+For more troubleshooting tips, see [DOCKER_SETUP.md](DOCKER_SETUP.md).
 
+## 🧪 CI/CD
 
-# 7. Setup github secrets:
+- **CI**: `.github/workflows/ci.yml` - Runs tests on push/PR
+- **CD**: `.github/workflows/cd.yml` - Builds and pushes Docker image
 
-   - AWS_ACCESS_KEY_ID
-   - AWS_SECRET_ACCESS_KEY
-   - AWS_DEFAULT_REGION
-   - ECR_REPO
-   - PINECONE_API_KEY
-   - OPENAI_API_KEY
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests: `docker-compose exec app pytest`
+5. Submit a pull request
+
+## 📞 Support
+
+For issues and questions, please open an issue on GitHub.
+
+## 📄 License
+
+See LICENSE file
+
+---
+
+**Note**: This application uses Google Gemini AI for generating responses. Make sure you have a valid API key and that billing is enabled on your Google Cloud project if required for your chosen model.
+
+**Documentation**:
+
+- [DOCKER_SETUP.md](DOCKER_SETUP.md) - Detailed Docker setup and running instructions
+- [TESTING.md](TESTING.md) - Comprehensive testing guide
