@@ -1,56 +1,100 @@
 /* -------- GLOBAL -------- */
 
-/* Force full-screen centering */
 html, body {
     height: 100%;
     margin: 0;
     padding: 0;
+    overflow-x: hidden;
 }
 
 body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: radial-gradient(circle at top, #7abaff 0%, #0066ff 100%);
+    background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 50%, #f0f4f8 100%);
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
 }
 
+/* Container fix - full height minus navbar - ONLY for chat page */
+.chat-page-container {
+    height: calc(100vh - 56px);
+    padding: 0;
+    margin: 0;
+    margin-top: 56px;
+    position: relative;
+}
 
+.chat-page-container .row {
+    height: 100%;
+    margin: 0;
+}
 
-/* Container fix */
-.container-fluid, .row.h-100 {
+.chat-page-container .row > div {
+    height: 100%;
+    padding: 0;
+}
+
+/* Make sure navbar container-fluid is not affected */
+nav .container-fluid {
     height: auto !important;
+    margin-top: 0 !important;
+    padding: 0 15px;
 }
 
 .chat {
-    margin: 0 auto !important;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    margin: 0 !important;
+    height: 100%;
 }
 
 
 /* -------- CARD (CHAT WINDOW) -------- */
 
 .card {
-    width: 450px;
-    height: 75vh;
-    min-height: 600px;
-    border-radius: 26px !important;
-    background: #ffffffcc;
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.4);
-    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    width: 100%;
+    height: 100%;
+    border-radius: 0 !important;
+    background: #ffffff;
+    border: none;
+    box-shadow: none;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    margin: 0;
+}
+
+/* Desktop: Add some padding and rounded corners */
+@media (min-width: 768px) {
+    .container-fluid .row > div {
+        padding: 15px;
+    }
+    
+    .card {
+        border-radius: 20px !important;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        max-width: 1400px;
+        margin: 0 auto;
+    }
 }
 
 .card-header {
-    background: linear-gradient(135deg, #7abaff, #006eff);
-    padding: 22px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px 25px;
     border-bottom: none !important;
     color: white;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+@media (max-width: 576px) {
+    .card-header {
+        padding: 15px 20px;
+    }
+    
+    .card-header h5 {
+        font-size: 1.1rem;
+    }
+    
+    .card-header small {
+        font-size: 0.75rem;
+    }
 }
 
 .user_img {
@@ -123,23 +167,23 @@ body {
 
 /* BOT bubbles */
 .msg_cotainer {
-    background: #006eff;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     padding: 12px 18px;
     border-radius: 20px 20px 20px 4px;
     font-size: 15px;
     max-width: 75%;
-    box-shadow: 0 4px 14px rgba(0, 110, 255, 0.35);
+    box-shadow: 0 4px 14px rgba(102, 126, 234, 0.3);
 }
 
 .msg_cotainer_send {
-    background: #00c36f;
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
     color: white;
     padding: 12px 18px;
     border-radius: 20px 20px 4px 20px;
     font-size: 15px;
     max-width: 75%;
-    box-shadow: 0 4px 14px rgba(0, 195, 111, 0.35);
+    box-shadow: 0 4px 14px rgba(17, 153, 142, 0.3);
 }
 
 /* time stamps */
@@ -156,10 +200,16 @@ body {
 /* -------- INPUT AREA -------- */
 
 .card-footer {
-    background: #ffffffdd;
-    backdrop-filter: blur(14px);
+    background: #ffffff;
     border-top: 1px solid rgba(0,0,0,0.1);
-    padding: 12px;
+    padding: 15px 20px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 576px) {
+    .card-footer {
+        padding: 12px 15px;
+    }
 }
 
 .type_msg {
@@ -180,17 +230,25 @@ body {
 /* SEND BUTTON */
 .send_btn {
     border-radius: 18px !important;
-    background: #006eff !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
     padding: 0 24px;
     margin-left: 10px;
     color: white !important;
     font-size: 18px;
-    transition: 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    border: none !important;
 }
 
 .send_btn:hover {
-    background: #0050d4 !important;
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.send_btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
 }
 
 /* Fix button icon */
@@ -199,9 +257,70 @@ body {
 }
 
 /* -------- MOBILE FIXES -------- */
-@media(max-width: 576px){
+@media (max-width: 576px) {
     .card {
-        height: 90vh;
+        height: 100vh;
         border-radius: 0 !important;
+    }
+    
+    .messages-container {
+        padding: 15px;
+    }
+    
+    .msg_cotainer, .msg_cotainer_send {
+        max-width: 85%;
+        font-size: 14px;
+        padding: 10px 15px;
+    }
+    
+    .img_cont_msg img {
+        height: 32px;
+        width: 32px;
+    }
+    
+    .card-footer {
+        padding: 10px;
+    }
+    
+    .type_msg {
+        height: 48px !important;
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    .send_btn {
+        padding: 0 20px;
+        font-size: 16px;
+    }
+    
+    .citation-badge {
+        font-size: 10px;
+        padding: 2px 6px;
+    }
+    
+    .citations-panel {
+        font-size: 11px;
+        padding: 8px;
+    }
+}
+
+/* Tablet adjustments */
+@media (min-width: 577px) and (max-width: 991px) {
+    .card {
+        max-width: 95%;
+    }
+    
+    .messages-container {
+        padding: 18px;
+    }
+}
+
+/* Large desktop - maximize space */
+@media (min-width: 1400px) {
+    .container-fluid .row > div {
+        padding: 20px;
+    }
+    
+    .card {
+        max-width: 1600px;
     }
 }

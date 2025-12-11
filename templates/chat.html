@@ -1,81 +1,642 @@
-<link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
-<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+{% extends "base.html" %} {% block extra_css %}
+<style>
+  .chat-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0; /* Important for flex scrolling */
+  }
+  
+  /* Adjust when flash messages are visible - using JavaScript fallback */
+  body.has-flash-messages .chat-container {
+    height: calc(100vh - 56px - 60px);
+  }
+  .messages-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 25px;
+    background: #f7f9fc;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  }
+  
+  /* Mobile chat container */
+  @media (max-width: 576px) {
+    .chat-container {
+      height: calc(100vh - 120px);
+    }
+  }
+  .citation-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    margin: 2px 3px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+    position: relative;
+    overflow: hidden;
+  }
+  .citation-badge::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s;
+  }
+  .citation-badge:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    color: white;
+    text-decoration: none;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  }
+  .citation-badge:hover::before {
+    left: 100%;
+  }
+  .citation-badge:active {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+  }
+  .citations-panel {
+    background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+    padding: 15px;
+    border-radius: 12px;
+    margin-top: 15px;
+    font-size: 12px;
+    border: 1px solid #e8eaf6;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .citations-panel strong {
+    color: #667eea;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .citation-item {
+    margin: 8px 0;
+    padding: 12px 15px;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    position: relative;
+    overflow: hidden;
+  }
+  .citation-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 3px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    transform: scaleY(0);
+    transition: transform 0.3s ease;
+  }
+  .citation-item:hover {
+    background: linear-gradient(90deg, #f8f9ff 0%, #ffffff 100%);
+    border-color: #667eea;
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  }
+  .citation-item:hover::before {
+    transform: scaleY(1);
+  }
+  .citation-item strong {
+    color: #667eea;
+    font-weight: 600;
+  }
+  .feedback-buttons {
+    margin-top: 10px;
+  }
+  .feedback-btn {
+    background: none;
+    border: 2px solid #ddd;
+    padding: 5px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    margin-right: 10px;
+  }
+  .feedback-btn:hover {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.05);
+    transform: translateY(-1px);
+  }
+  .feedback-btn.active.positive {
+    background: #28a745;
+    border-color: #28a745;
+    color: white;
+  }
+  .feedback-btn.active.negative {
+    background: #dc3545;
+    border-color: #dc3545;
+    color: white;
+  }
+  .typing-indicator {
+    display: inline-block;
+  }
+  .typing-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    margin: 0 2px;
+    animation: typing 1.4s infinite;
+  }
+  .typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+  @keyframes typing {
+    0%,
+    60%,
+    100% {
+      transform: translateY(0);
+    }
+    30% {
+      transform: translateY(-10px);
+    }
+  }
+  .advanced-rag-toggle {
+    margin-bottom: 10px;
+  }
+  
+  /* Improve input area */
+  #messageForm {
+    display: flex;
+    gap: 10px;
+  }
+  
+  #messageInput {
+    flex: 1;
+    border-radius: 25px;
+    border: 2px solid #e0e0e0;
+    padding: 12px 20px;
+    font-size: 15px;
+    transition: all 0.3s ease;
+  }
+  
+  #messageInput:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+  
+  #sendBtn {
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border: none;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  #sendBtn:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  }
+  
+  #sendBtn:active {
+    transform: translateY(0) scale(1);
+  }
+  
+  /* Mobile input improvements */
+  @media (max-width: 576px) {
+    #messageInput {
+      font-size: 16px; /* Prevents zoom on iOS */
+      padding: 10px 18px;
+    }
+    
+    #sendBtn {
+      width: 44px;
+      height: 44px;
+    }
+  }
+  
+  /* Better scrollbar styling */
+  .messages-container::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .messages-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  .messages-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+  }
+  
+  .messages-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="container-fluid chat-page-container">
+  <div class="row justify-content-center h-100">
+    <div class="col-12 h-100">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="mb-0"><i class="fas fa-robot"></i> Medical Chatbot</h5>
+              <small>Powered by Gemini AI</small>
+            </div>
+            <div class="advanced-rag-toggle">
+              <label class="text-white">
+                <input type="checkbox" id="advancedRagToggle" /> Advanced RAG
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-0 chat-container">
+          <div id="messagesContainer" class="messages-container">
+            <div class="text-center text-muted mt-5">
+              <i class="fas fa-comments fa-3x mb-3"></i>
+              <p>Start a conversation by asking a medical question</p>
+            </div>
+          </div>
+          <div class="card-footer bg-white">
+            <form id="messageForm" class="input-group">
+              <input
+                type="text"
+                id="messageInput"
+                class="form-control"
+                placeholder="Type your message..."
+                autocomplete="off"
+                required
+              />
+              <div class="input-group-append">
+                <button type="submit" id="sendBtn" class="btn btn-primary">
+                  <i class="fas fa-paper-plane"></i>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
 
-<!DOCTYPE html>
-<html>
-	<head>
-		<title>Chatbot</title>
-		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
-		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-		<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css')}}"/>
-	</head>
-	
-	
-	<body>
-		<div class="container-fluid h-100">
-			<div class="row justify-content-center h-100">		
-				<div class="col-md-8 col-xl-6 chat">
-					<div class="card">
-						<div class="card-header msg_head">
-							<div class="d-flex bd-highlight">
-								<div class="img_cont">
-									<img src="https://cdn-icons-png.flaticon.com/512/387/387569.png" class="rounded-circle user_img">
-									<!-- <img src="https://www.prdistribution.com/spirit/uploads/pressreleases/2019/newsreleases/d83341deb75c4c4f6b113f27b1e42cd8-chatbot-florence-already-helps-thousands-of-patients-to-remember-their-medication.png" class="rounded-circle user_img"> -->
-									<span class="online_icon"></span>
-								</div>
-								<div class="user_info">
-									<span>Medical Chatbot</span>
-									<p>Ask me anything!</p>
-								</div>
-							</div>
-						</div>
-						<div id="messageFormeight" class="card-body msg_card_body">
-							
-							
-						</div>
-						<div class="card-footer">
-							<form id="messageArea" class="input-group">
-                                <input type="text" id="text" name="msg" placeholder="Type your message..." autocomplete="off" class="form-control type_msg" required/>
-								<div class="input-group-append">
-									<button type="submit" id="send" class="input-group-text send_btn"><i class="fas fa-location-arrow"></i></button>
-								</div>
-							</form>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-		
-		<script>
-			$(document).ready(function() {
-				$("#messageArea").on("submit", function(event) {
-					const date = new Date();
-					const hour = date.getHours();
-					const minute = date.getMinutes();
-					const str_time = hour+":"+minute;
-					var rawText = $("#text").val();
+{% block extra_js %}
+<script>
+  let currentConversationId = null;
+  let currentMessageId = null;
 
-					var userHtml = '<div class="d-flex justify-content-end mb-4"><div class="msg_cotainer_send">' + rawText + '<span class="msg_time_send">'+ str_time + '</span></div><div class="img_cont_msg"><img src="https://i.ibb.co/d5b84Xw/Untitled-design.png" class="rounded-circle user_img_msg"></div></div>';
-					
-					$("#text").val("");
-					$("#messageFormeight").append(userHtml);
+  $(document).ready(function () {
+    // Verify jQuery is loaded
+    if (typeof $ === 'undefined') {
+      console.error('jQuery is not loaded!');
+      alert('Error: jQuery is not loaded. Please refresh the page.');
+      return;
+    }
 
-					$.ajax({
-						data: {
-							msg: rawText,	
-						},
-						type: "POST",
-						url: "/get",
-					}).done(function(data) {
-						var botHtml = '<div class="d-flex justify-content-start mb-4"><div class="img_cont_msg"><img src="https://cdn-icons-png.flaticon.com/512/387/387569.png" class="rounded-circle user_img_msg"></div><div class="msg_cotainer">' + data + '<span class="msg_time">' + str_time + '</span></div></div>';
-						$("#messageFormeight").append($.parseHTML(botHtml));
-					});
-					event.preventDefault();
-				});
-			});
-		</script>
-        
-    </body>
-</html>
+    // Verify form exists
+    if ($("#messageForm").length === 0) {
+      console.error('Form #messageForm not found!');
+      return;
+    }
+
+    console.log('Chat interface initialized');
+
+    loadConversations();
+
+    $("#messageForm").on("submit", function (event) {
+      event.preventDefault();
+      console.log('Form submitted');
+      sendMessage();
+    });
+
+    $("#messageInput").on("keypress", function (e) {
+      if (e.which === 13 && !e.shiftKey) {
+        e.preventDefault();
+        console.log('Enter key pressed');
+        $("#messageForm").submit();
+      }
+    });
+  });
+
+  function sendMessage() {
+    const message = $("#messageInput").val().trim();
+    if (!message) {
+      console.log('Empty message, not sending');
+      return;
+    }
+
+    console.log('Sending message:', message);
+
+    $("#messageInput").prop("disabled", true);
+    $("#sendBtn").prop("disabled", true);
+
+    addMessage("user", message);
+    $("#messageInput").val("");
+
+    const botMsgId = "msg-" + Date.now();
+    const botMsgHtml = `
+        <div id="${botMsgId}" class="d-flex justify-content-start mb-4">
+            <div class="img_cont_msg">
+                <img src="https://cdn-icons-png.flaticon.com/512/387/387569.png" class="rounded-circle user_img_msg">
+            </div>
+            <div class="msg_cotainer">
+                <div class="message-content"></div>
+                <div class="typing-indicator" style="display:none;">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                </div>
+                <span class="msg_time"></span>
+            </div>
+        </div>
+    `;
+    $("#messagesContainer").append(botMsgHtml);
+    const $botMsg = $(`#${botMsgId}`);
+    const $content = $botMsg.find(".message-content");
+    const $typingIndicator = $botMsg.find(".typing-indicator");
+
+    $typingIndicator.show();
+
+    scrollToBottom();
+
+    let fullAnswer = "";
+    let citations = [];
+
+    const useAdvancedRag = $("#advancedRagToggle").is(":checked");
+    
+    console.log('Making fetch request to /api/chat/stream');
+    console.log('Message:', message);
+    console.log('Advanced RAG:', useAdvancedRag);
+
+    fetch("/api/chat/stream", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        message: message,
+        conversation_id: currentConversationId,
+        use_advanced_rag: useAdvancedRag,
+      }),
+    })
+      .then((response) => {
+        console.log('Response received:', response.status, response.statusText);
+        if (!response.ok) {
+          console.error('Response not OK:', response.status, response.statusText);
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        if (!response.body) {
+          console.error('Response body is null');
+          throw new Error("Response body is null");
+        }
+        console.log('Starting to read stream');
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        function readStream() {
+          reader
+            .read()
+            .then(({ done, value }) => {
+              if (done) {
+                $typingIndicator.hide();
+                $("#messageInput").prop("disabled", false);
+                $("#sendBtn").prop("disabled", false);
+                $("#messageInput").focus();
+                return;
+              }
+
+              const chunk = decoder.decode(value);
+              const lines = chunk.split("\n");
+
+              for (const line of lines) {
+                if (line.startsWith("data: ")) {
+                  try {
+                    const data = JSON.parse(line.substring(6));
+
+                    if (data.type === "token") {
+                      fullAnswer += data.content;
+                      $content.html(formatMessage(fullAnswer));
+                      $typingIndicator.hide();
+                      scrollToBottom();
+                    } else if (data.type === "citations") {
+                      citations = data.citations;
+                      currentConversationId = data.conversation_id;
+                      displayCitations($botMsg, citations);
+                      scrollToBottom();
+                    } else if (data.type === "done") {
+                      $typingIndicator.hide();
+                      updateMessageTime($botMsg);
+                      addFeedbackButtons($botMsg, data.message_id);
+                      $("#messageInput").prop("disabled", false);
+                      $("#sendBtn").prop("disabled", false);
+                      $("#messageInput").focus();
+                    } else if (data.type === "error") {
+                      $typingIndicator.hide();
+                      $content.html(
+                        `<span class="text-danger">Error: ${data.message}</span>`
+                      );
+                      $("#messageInput").prop("disabled", false);
+                      $("#sendBtn").prop("disabled", false);
+                    }
+                  } catch (e) {
+                    console.error("Error parsing SSE data:", e);
+                  }
+                }
+              }
+
+              readStream();
+            })
+            .catch((error) => {
+              console.error("Stream error:", error);
+              $typingIndicator.hide();
+              $content.html(
+                `<span class="text-danger">Connection error. Please try again.</span>`
+              );
+              $("#messageInput").prop("disabled", false);
+              $("#sendBtn").prop("disabled", false);
+            });
+        }
+
+        readStream();
+      })
+      .catch((error) => {
+        console.error("Fetch error:", error);
+        $typingIndicator.hide();
+        $content.html(
+          `<span class="text-danger">Connection error. Please try again.</span>`
+        );
+        $("#messageInput").prop("disabled", false);
+        $("#sendBtn").prop("disabled", false);
+      });
+  }
+
+  function addMessage(role, content) {
+    const time = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    let html;
+
+    if (role === "user") {
+      html = `
+            <div class="d-flex justify-content-end mb-4">
+                <div class="msg_cotainer_send">
+                    ${escapeHtml(content)}
+                    <span class="msg_time_send">${time}</span>
+                </div>
+                <div class="img_cont_msg">
+                    <img src="https://i.ibb.co/d5b84Xw/Untitled-design.png" class="rounded-circle user_img_msg">
+                </div>
+            </div>
+        `;
+    } else {
+      html = `
+            <div class="d-flex justify-content-start mb-4">
+                <div class="img_cont_msg">
+                    <img src="https://cdn-icons-png.flaticon.com/512/387/387569.png" class="rounded-circle user_img_msg">
+                </div>
+                <div class="msg_cotainer">
+                    ${formatMessage(content)}
+                    <span class="msg_time">${time}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    $("#messagesContainer .text-center").remove();
+    $("#messagesContainer").append(html);
+    scrollToBottom();
+  }
+
+  function formatMessage(content) {
+    let formatted = escapeHtml(content);
+    formatted = formatted.replace(/\[Source \d+\]/g, '');
+    return formatted;
+  }
+
+  function displayCitations($messageContainer, citations) {
+    if (!citations || citations.length === 0) return;
+
+    let citationsHtml =
+      '<div class="citations-panel"><strong>Sources:</strong><br>';
+    citations.forEach((cit) => {
+      const pageText = cit.page && cit.page !== 'N/A' ? ` (Page ${cit.page})` : '';
+      citationsHtml += `
+            <div class="citation-item" data-source="${cit.id}">
+                <strong>${escapeHtml(cit.source)}</strong>${pageText}<br>
+                <small class="text-muted">${escapeHtml(cit.preview)}</small>
+            </div>
+        `;
+    });
+    citationsHtml += "</div>";
+
+    $messageContainer.find(".msg_cotainer").append(citationsHtml);
+
+    $messageContainer
+      .find(".citation-item")
+      .on("click", function () {
+        const sourceId = $(this).data("source");
+        const citation = citations.find((c) => c.id === sourceId);
+        if (citation) {
+          const pageText = citation.page && citation.page !== 'N/A' ? `Page: ${citation.page}` : 'Page: N/A';
+          alert(
+            `Source: ${citation.source}\n${pageText}\n\n${citation.preview}`
+          );
+        }
+      });
+  }
+
+  function addFeedbackButtons($messageContainer, messageId) {
+    const feedbackHtml = `
+        <div class="feedback-buttons">
+            <button class="feedback-btn positive" data-rating="positive" data-message-id="${messageId}">
+                <i class="fas fa-thumbs-up"></i> Helpful
+            </button>
+            <button class="feedback-btn negative" data-rating="negative" data-message-id="${messageId}">
+                <i class="fas fa-thumbs-down"></i> Not Helpful
+            </button>
+        </div>
+    `;
+
+    $messageContainer.find(".msg_cotainer").append(feedbackHtml);
+
+    $messageContainer.find(".feedback-btn").on("click", function () {
+      const rating = $(this).data("rating");
+      const msgId = $(this).data("message-id");
+
+      if (!msgId) return;
+
+      $messageContainer.find(".feedback-btn").removeClass("active");
+      $(this).addClass("active");
+
+      $.ajax({
+        url: "/api/feedback",
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({
+          message_id: msgId,
+          rating: rating,
+        }),
+        success: function () {
+        },
+      });
+    });
+  }
+
+  function loadConversations() {
+    $.ajax({
+      url: "/api/conversations",
+      method: "GET",
+      success: function (conversations) {
+      },
+    });
+  }
+
+  function updateMessageTime($message) {
+    const time = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    $message.find(".msg_time").text(time);
+  }
+
+  function scrollToBottom() {
+    const container = document.getElementById("messagesContainer");
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function escapeHtml(text) {
+    const map = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;",
+    };
+    return text.replace(/[&<>"']/g, (m) => map[m]);
+  }
+</script>
+{% endblock %}
