@@ -1,0 +1,41 @@
+name: Continuous Delivery
+
+on:
+    push:
+        branches: ["main"]
+
+jobs:
+    build-and-push:
+        runs-on: ubuntu-latest
+
+        permissions:
+            contents: read
+            packages: write
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Login to GitHub Container Registry
+              uses: docker/login-action@v3
+              with:
+                  registry: ghcr.io
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Build and push Docker image
+              uses: docker/build-push-action@v5
+              with:
+                  context: .
+                  push: true
+                  tags: |
+                      ghcr.io/${{ github.repository_owner }}/medical-chatbot:latest
+                      ghcr.io/${{ github.repository_owner }}/medical-chatbot:${{ github.sha }}
+                  cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/medical-chatbot:latest
+                  cache-to: type=inline
+
+            - name: Image info
+              run: |
+                  echo "Image pushed to: ghcr.io/${{ github.repository_owner }}/medical-chatbot:latest"
+                  echo "Image SHA: ghcr.io/${{ github.repository_owner }}/medical-chatbot:${{ github.sha }}"
+
