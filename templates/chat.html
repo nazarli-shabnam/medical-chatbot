@@ -175,6 +175,53 @@
     margin-bottom: 10px;
   }
   
+  /* Modern History Toggle Button */
+  .history-toggle-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 0;
+    font-size: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  
+  .history-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  }
+  
+  .history-toggle-btn:active {
+    transform: scale(0.95);
+  }
+  
+  .history-toggle-btn i {
+    transition: transform 0.3s ease;
+  }
+  
+  .history-toggle-btn:hover i {
+    transform: rotate(15deg);
+  }
+  
+  @media (max-width: 576px) {
+    .history-toggle-btn {
+      width: 36px;
+      height: 36px;
+      font-size: 14px;
+    }
+  }
+  
   /* Improve input area */
   #messageForm {
     display: flex;
@@ -221,10 +268,9 @@
     transform: translateY(0) scale(1);
   }
   
-  /* Mobile input improvements */
   @media (max-width: 576px) {
     #messageInput {
-      font-size: 16px; /* Prevents zoom on iOS */
+      font-size: 16px;
       padding: 10px 18px;
     }
     
@@ -234,7 +280,6 @@
     }
   }
   
-  /* Better scrollbar styling */
   .messages-container::-webkit-scrollbar {
     width: 8px;
   }
@@ -252,17 +297,193 @@
   .messages-container::-webkit-scrollbar-thumb:hover {
     background: #555;
   }
+  
+  .conversation-sidebar {
+    background: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+  
+  .conversation-sidebar.hidden {
+    transform: translateX(-100%);
+    opacity: 0;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    overflow: hidden;
+  }
+  
+  .conversation-sidebar-inner {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .conversation-sidebar-header {
+    padding: 15px;
+    background: white;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .conversation-sidebar-header h6 {
+    margin: 0;
+    color: #495057;
+    font-weight: 600;
+  }
+  
+  .conversations-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 0;
+  }
+  
+  .conversation-item {
+    padding: 12px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #e9ecef;
+    transition: background-color 0.2s;
+    position: relative;
+  }
+  
+  .conversation-item:hover {
+    background-color: #e9ecef;
+  }
+  
+  .conversation-item.active {
+    background-color: #667eea;
+    color: white;
+  }
+  
+  .conversation-item.active .conversation-preview {
+    color: rgba(255, 255, 255, 0.9);
+  }
+  
+  .conversation-item.active .conversation-meta {
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  .conversation-preview {
+    font-size: 14px;
+    color: #495057;
+    margin-bottom: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .conversation-meta {
+    font-size: 12px;
+    color: #6c757d;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .conversation-count {
+    background: #667eea;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+  }
+  
+  .conversation-item.active .conversation-count {
+    background: rgba(255, 255, 255, 0.3);
+  }
+  
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    display: none;
+  }
+  
+  .sidebar-overlay.show {
+    display: block;
+  }
+  
+  .conversation-sidebar.mobile-open {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    width: 280px;
+    height: calc(100vh - 56px);
+    z-index: 1000;
+    display: block !important;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  @media (max-width: 767px) {
+    .conversation-sidebar:not(.mobile-open) {
+      display: none;
+    }
+  }
+  
+  /* Adjust main chat area when sidebar is hidden */
+  .conversation-sidebar.hidden ~ .col-md-9 {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
+  
+  @media (min-width: 768px) {
+    .conversation-sidebar.hidden ~ .col-md-9 {
+      flex: 0 0 100% !important;
+      max-width: 100% !important;
+    }
+  }
 </style>
 {% endblock %} {% block content %}
 <div class="container-fluid chat-page-container">
-  <div class="row justify-content-center h-100">
-    <div class="col-12 h-100">
-      <div class="card shadow">
+  <div class="row h-100 m-0">
+    <!-- Conversation History Sidebar -->
+    <div class="col-md-3 col-lg-3 p-0 d-none d-md-block conversation-sidebar">
+      <div class="conversation-sidebar-inner">
+        <div class="conversation-sidebar-header">
+          <h6 class="mb-0"><i class="fas fa-history"></i> Conversations</h6>
+          <button id="newConversationBtn" class="btn btn-sm btn-primary">
+            <i class="fas fa-plus"></i> New
+          </button>
+        </div>
+        <div id="conversationsList" class="conversations-list">
+          <div class="text-center text-muted p-3">
+            <i class="fas fa-spinner fa-spin"></i> Loading...
+								</div>
+								</div>
+							</div>
+						</div>
+    
+    <button id="sidebarToggle" class="btn btn-sm btn-secondary d-md-none position-fixed" style="top: 70px; left: 10px; z-index: 1000;">
+      <i class="fas fa-bars"></i>
+    </button>
+    
+    <div id="sidebarOverlay" class="sidebar-overlay d-md-none"></div>
+    
+    <div class="col-12 col-md-9 col-lg-9 h-100 p-0">
+      <div class="card shadow h-100">
         <div class="card-header bg-primary text-white">
           <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h5 class="mb-0"><i class="fas fa-robot"></i> Medical Chatbot</h5>
-              <small>Powered by Gemini AI</small>
+            <div class="d-flex align-items-center gap-3">
+              <button id="historyToggleBtn" class="history-toggle-btn" title="Toggle conversation history">
+                <i class="fas fa-history"></i>
+              </button>
+              <div>
+                <h5 class="mb-0"><i class="fas fa-robot"></i> Medical Chatbot</h5>
+                <small>Powered by Gemini AI</small>
+              </div>
             </div>
             <div class="advanced-rag-toggle">
               <label class="text-white">
@@ -277,7 +498,7 @@
               <i class="fas fa-comments fa-3x mb-3"></i>
               <p>Start a conversation by asking a medical question</p>
             </div>
-          </div>
+						</div>
           <div class="card-footer bg-white">
             <form id="messageForm" class="input-group">
               <input
@@ -288,40 +509,67 @@
                 autocomplete="off"
                 required
               />
-              <div class="input-group-append">
+								<div class="input-group-append">
                 <button type="submit" id="sendBtn" class="btn btn-primary">
                   <i class="fas fa-paper-plane"></i>
                 </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+								</div>
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
 </div>
 {% endblock %}
-
+		
 {% block extra_js %}
-<script>
+		<script>
   let currentConversationId = null;
   let currentMessageId = null;
 
   $(document).ready(function () {
-    // Verify jQuery is loaded
     if (typeof $ === 'undefined') {
       console.error('jQuery is not loaded!');
       alert('Error: jQuery is not loaded. Please refresh the page.');
       return;
     }
 
-    // Verify form exists
     if ($("#messageForm").length === 0) {
       console.error('Form #messageForm not found!');
       return;
     }
 
     console.log('Chat interface initialized');
+
+    $("#newConversationBtn").on("click", function() {
+      newConversation();
+    });
+    
+    $("#historyToggleBtn").on("click", function() {
+      toggleSidebar();
+    });
+    
+    $("#sidebarToggle").on("click", function() {
+      toggleSidebar();
+    });
+    
+    $("#sidebarOverlay").on("click", function() {
+      closeMobileSidebar();
+    });
+    
+    const isMobile = window.innerWidth < 768;
+    if (!isMobile) {
+      const sidebarVisible = localStorage.getItem('sidebarVisible');
+      if (sidebarVisible === 'false') {
+        $(".conversation-sidebar").addClass("hidden");
+        updateToggleButtonIcon(false);
+      } else {
+        updateToggleButtonIcon(true);
+      }
+    } else {
+      $("#historyToggleBtn").html('<i class="fas fa-history"></i>');
+    }
 
     loadConversations();
 
@@ -446,6 +694,8 @@
                       currentConversationId = data.conversation_id;
                       displayCitations($botMsg, citations);
                       scrollToBottom();
+                      $(".conversation-item").removeClass("active");
+                      $(`.conversation-item[data-conversation-id="${currentConversationId}"]`).addClass("active");
                     } else if (data.type === "done") {
                       $typingIndicator.hide();
                       updateMessageTime($botMsg);
@@ -453,6 +703,7 @@
                       $("#messageInput").prop("disabled", false);
                       $("#sendBtn").prop("disabled", false);
                       $("#messageInput").focus();
+                      loadConversations();
                     } else if (data.type === "error") {
                       $typingIndicator.hide();
                       $content.html(
@@ -493,11 +744,19 @@
       });
   }
 
-  function addMessage(role, content) {
-    const time = new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  function addMessage(role, content, timestamp) {
+    let time;
+    if (timestamp) {
+      time = new Date(timestamp).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } else {
+      time = new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
     let html;
 
     if (role === "user") {
@@ -592,7 +851,7 @@
       $messageContainer.find(".feedback-btn").removeClass("active");
       $(this).addClass("active");
 
-      $.ajax({
+					$.ajax({
         url: "/api/feedback",
         method: "POST",
         contentType: "application/json",
@@ -602,8 +861,8 @@
         }),
         success: function () {
         },
-      });
-    });
+				});
+			});
   }
 
   function loadConversations() {
@@ -611,9 +870,216 @@
       url: "/api/conversations",
       method: "GET",
       success: function (conversations) {
+        const $list = $("#conversationsList");
+        $list.empty();
+        
+        if (conversations.length === 0) {
+          $list.html(`
+            <div class="text-center text-muted p-3">
+              <i class="fas fa-comments fa-2x mb-2"></i>
+              <p class="mb-0">No conversations yet</p>
+              <small>Start a new conversation to begin</small>
+            </div>
+          `);
+          return;
+        }
+        
+        conversations.forEach(function(conv) {
+          const date = new Date(conv.created_at);
+          const dateStr = date.toLocaleDateString();
+          const preview = conv.preview || 'No messages';
+          const isActive = conv.id === currentConversationId;
+          
+          const $item = $(`
+            <div class="conversation-item ${isActive ? 'active' : ''}" data-conversation-id="${conv.id}">
+              <div class="conversation-preview">${escapeHtml(preview)}</div>
+              <div class="conversation-meta">
+                <span>${dateStr}</span>
+                <span class="conversation-count">${conv.message_count} msgs</span>
+              </div>
+            </div>
+          `);
+          
+          $item.on('click', function() {
+            selectConversation(conv.id);
+          });
+          
+          $list.append($item);
+        });
+        
+        if (!currentConversationId && conversations.length > 0) {
+          selectConversation(conversations[0].id);
+        }
       },
+      error: function(xhr, status, error) {
+        console.error('Error loading conversations:', error);
+        $("#conversationsList").html(`
+          <div class="text-center text-danger p-3">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p class="mb-0">Error loading conversations</p>
+          </div>
+        `);
+      }
     });
   }
+  
+  function selectConversation(conversationId) {
+    $(".conversation-item").removeClass("active");
+    $(`.conversation-item[data-conversation-id="${conversationId}"]`).addClass("active");
+    
+    currentConversationId = conversationId;
+    
+    loadMessages(conversationId);
+    
+    closeMobileSidebar();
+  }
+  
+  function loadMessages(conversationId) {
+    if (!conversationId) {
+      clearMessages();
+      return;
+    }
+    
+    $.ajax({
+      url: `/api/conversations/${conversationId}/messages`,
+      method: "GET",
+      success: function (messages) {
+        clearMessages();
+        
+        if (messages.length === 0) {
+          $("#messagesContainer").html(`
+            <div class="text-center text-muted mt-5">
+              <i class="fas fa-comments fa-3x mb-3"></i>
+              <p>No messages in this conversation</p>
+            </div>
+          `);
+          return;
+        }
+        
+        messages.forEach(function(msg) {
+          if (msg.role === 'user') {
+            addMessage('user', msg.content, msg.created_at);
+          } else {
+            const botMsgId = "msg-" + msg.id;
+            const time = new Date(msg.created_at).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            
+            const botMsgHtml = `
+              <div id="${botMsgId}" class="d-flex justify-content-start mb-4">
+                <div class="img_cont_msg">
+                  <img src="https://cdn-icons-png.flaticon.com/512/387/387569.png" class="rounded-circle user_img_msg">
+                </div>
+                <div class="msg_cotainer">
+                  <div class="message-content">${formatMessage(msg.content)}</div>
+                  <span class="msg_time">${time}</span>
+                </div>
+              </div>
+            `;
+            
+            $("#messagesContainer").append(botMsgHtml);
+            const $botMsg = $(`#${botMsgId}`);
+            
+            if (msg.citations && msg.citations.length > 0) {
+              displayCitations($botMsg, msg.citations);
+            }
+            
+            if (msg.id) {
+              addFeedbackButtons($botMsg, msg.id);
+              if (msg.feedback) {
+                $botMsg.find(`.feedback-btn[data-rating="${msg.feedback}"]`).addClass('active');
+              }
+            }
+          }
+        });
+        
+        scrollToBottom();
+      },
+      error: function(xhr, status, error) {
+        console.error('Error loading messages:', error);
+        $("#messagesContainer").html(`
+          <div class="text-center text-danger mt-5">
+            <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+            <p>Error loading messages</p>
+          </div>
+        `);
+      }
+    });
+  }
+  
+  function clearMessages() {
+    $("#messagesContainer").empty();
+  }
+  
+  function newConversation() {
+    currentConversationId = null;
+    $(".conversation-item").removeClass("active");
+    clearMessages();
+    $("#messagesContainer").html(`
+      <div class="text-center text-muted mt-5">
+        <i class="fas fa-comments fa-3x mb-3"></i>
+        <p>Start a conversation by asking a medical question</p>
+      </div>
+    `);
+    $("#messageInput").focus();
+    closeMobileSidebar();
+  }
+  
+  function openMobileSidebar() {
+    $(".conversation-sidebar").removeClass("hidden").addClass("mobile-open");
+    $("#sidebarOverlay").addClass("show");
+  }
+  
+  function closeMobileSidebar() {
+    $(".conversation-sidebar").removeClass("mobile-open");
+    $("#sidebarOverlay").removeClass("show");
+  }
+  
+  function toggleSidebar() {
+    const $sidebar = $(".conversation-sidebar");
+    const isHidden = $sidebar.hasClass("hidden");
+    const isMobile = window.innerWidth < 768;
+    
+    if (isMobile) {
+      if ($sidebar.hasClass("mobile-open")) {
+        closeMobileSidebar();
+      } else {
+        openMobileSidebar();
+      }
+    } else {
+      if (isHidden) {
+        $sidebar.removeClass("hidden");
+        localStorage.setItem('sidebarVisible', 'true');
+        updateToggleButtonIcon(true);
+      } else {
+        $sidebar.addClass("hidden");
+        localStorage.setItem('sidebarVisible', 'false');
+        updateToggleButtonIcon(false);
+      }
+    }
+  }
+  
+  function updateToggleButtonIcon(isVisible) {
+    const $btn = $("#historyToggleBtn");
+    if (isVisible) {
+      $btn.html('<i class="fas fa-chevron-left"></i>');
+      $btn.attr('title', 'Hide conversation history');
+    } else {
+      $btn.html('<i class="fas fa-chevron-right"></i>');
+      $btn.attr('title', 'Show conversation history');
+    }
+  }
+  
+  $(window).on('resize', function() {
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) {
+      $("#historyToggleBtn").html('<i class="fas fa-history"></i>');
+    } else {
+      const sidebarVisible = localStorage.getItem('sidebarVisible') !== 'false';
+      updateToggleButtonIcon(sidebarVisible);
+    }
+  });
 
   function updateMessageTime($message) {
     const time = new Date().toLocaleTimeString([], {
