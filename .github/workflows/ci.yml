@@ -38,6 +38,9 @@ jobs:
               run: |
                   python -m pip install --upgrade pip
                   pip install -r requirements.txt
+                  # Remove deprecated pinecone-plugin-inference if installed
+                  # This plugin was deprecated in Pinecone SDK v6.0.0+ (inference is now built-in)
+                  pip uninstall -y pinecone-plugin-inference 2>/dev/null || true
 
             - name: Run tests
               env:
