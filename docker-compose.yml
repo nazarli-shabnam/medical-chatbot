@@ -38,6 +38,7 @@ services:
       - ./src:/app/src
       - ./templates:/app/templates
       - ./static:/app/static
+      - ./tests:/app/tests
     networks:
       - medical_chatbot_network
     command: >
