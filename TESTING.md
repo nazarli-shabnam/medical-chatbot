@@ -1,146 +1,120 @@
 # Testing Guide
 
-## Running Tests in Docker
+## Quick Start
 
-### Option 1: Run tests inside the app container (Recommended)
+**Normal usage** - Just run tests directly (tests directory is mounted, changes sync automatically):
 
 ```bash
-# Start the database first
-docker-compose up -d db
-
-# Run all tests
 docker-compose exec app pytest
+```
 
-# Run with verbose output
+Run with verbose output:
+
+```bash
 docker-compose exec app pytest -v
-
-# Run specific test file
-docker-compose exec app pytest tests/test_auth.py
-
-# Run with coverage
-docker-compose exec app pytest --cov=src --cov=app
-
-# Run with HTML coverage report
-docker-compose exec app pytest --cov=src --cov=app --cov-report=html
 ```
 
-### Option 2: Use the test service (if configured)
+**When to restart the container:**
 
-```bash
-docker-compose --profile test up test
-```
+Only run `.\restart_tests.ps1` (or restart manually) if:
+- Tests are hanging/not exiting
+- Tests are running old cached files
+- You see errors about missing test files that should exist
+- Python bytecode cache is causing issues
 
-### Option 3: Run tests locally (without Docker)
-
-```bash
-# Make sure you have PostgreSQL running locally
-# Set environment variables
-export DATABASE_URL=postgresql://user:pass@localhost:5432/test_db
-export PINECONE_API_KEY=your_key
-export GOOGLE_API_KEY=your_key
-export SECRET_KEY=test-secret-key
-
-# Run tests
-pytest
-```
+For normal test runs after making changes, just run `docker-compose exec app pytest` directly.
 
 ## Test Structure
 
+The test suite is organized into focused test files:
+
 - `tests/conftest.py` - Pytest fixtures and configuration
-- `tests/test_auth.py` - Authentication tests
-- `tests/test_chat_api.py` - Chat API tests
-- `tests/test_database.py` - Database model tests
-- `tests/test_documents_api.py` - Document management tests
+- `tests/test_auth.py` - Authentication tests (registration, login, protected routes)
+- `tests/test_database.py` - Database model tests (User, Document, Conversation, Message, etc.)
+- `tests/test_chat_api.py` - Chat API tests (streaming, conversations, messages)
+- `tests/test_documents_api.py` - Document management tests (upload, deletion)
 - `tests/test_feedback_api.py` - Feedback system tests
-- `tests/test_helpers.py` - Helper function tests
-- `tests/test_integration.py` - Integration tests
-- `tests/test_rag_advanced.py` - Advanced RAG tests
-
-## Test Configuration
-
-Tests use an in-memory SQLite database by default (configured in `conftest.py`).
-This ensures tests run quickly and don't require a real database.
+- `tests/test_helpers.py` - Helper function tests (filtering, text splitting, embeddings)
+- `tests/test_integration.py` - Integration tests (complete user flows, multi-user isolation)
+- `tests/test_utils.py` - Test utility functions
 
 ## Running Specific Tests
 
 ```bash
-# Run only unit tests
-docker-compose exec app pytest -m unit
+# Run specific test file
+docker-compose exec app pytest tests/test_auth.py
 
-# Run only integration tests
-docker-compose exec app pytest -m integration
+# Run specific test class
+docker-compose exec app pytest tests/test_auth.py::TestRegistration
+
+# Run specific test function
+docker-compose exec app pytest tests/test_auth.py::TestRegistration::test_register_success
 
 # Run tests matching a pattern
-docker-compose exec app pytest -k "test_login"
-
-# Run with coverage report
-docker-compose exec app pytest --cov=src --cov=app --cov-report=html
+docker-compose exec app pytest -k "login"
 
 # Run with short traceback
 docker-compose exec app pytest --tb=short
 
-# Run with line traceback
-docker-compose exec app pytest --tb=line
+# Run quietly (minimal output)
+docker-compose exec app pytest -q
 ```
 
-## Test Coverage
+## Test Configuration
 
-### Generate Coverage Report
-
-```bash
-# Generate HTML coverage report
-docker-compose exec app pytest --cov=src --cov=app --cov-report=html
-
-# Coverage report will be in htmlcov/index.html
-# View it by opening the file in a browser
-```
-
-### View Coverage in Terminal
-
-```bash
-docker-compose exec app pytest --cov=src --cov=app --cov-report=term
-```
+- **Database**: Uses in-memory SQLite (`sqlite:///:memory:`) for fast, isolated tests
+- **Mocks**: External services (Pinecone, Gemini, embeddings) are automatically mocked
+- **Isolation**: Each test runs in isolation with clean database state
+- **Cleanup**: Automatic cleanup after each test and forced exit after all tests
 
 ## Test Fixtures
 
-The test suite includes several useful fixtures (defined in `conftest.py`):
+Available fixtures (defined in `conftest.py`):
 
 - `app` - Flask application instance with test database
-- `client` - Test client for making requests
-- `runner` - CLI test runner
-- `test_user` - Creates a test user
+- `client` - Test client for making HTTP requests
+- `test_user` - Creates a test user (username: `testuser`, email: `test@example.com`)
 - `authenticated_client` - Test client with logged-in user
 - `test_document` - Creates a test document
 - `test_conversation` - Creates a test conversation
 - `test_message` - Creates a test message
 - `mock_pinecone` - Mocks Pinecone vector store
 - `mock_gemini` - Mocks Gemini LLM
-- `mock_embeddings` - Mocks embeddings
+- `mock_embeddings` - Automatically mocks embeddings (autouse fixture)
 
 ## Writing Tests
 
 ### Example: Testing an API Endpoint
 
 ```python
-def test_upload_document(authenticated_client, mock_pinecone, mock_gemini, mock_embeddings):
-    """Test document upload"""
-    with open('test.pdf', 'rb') as f:
-        response = authenticated_client.post(
-            '/api/upload',
-            data={'file': (f, 'test.pdf')},
-            content_type='multipart/form-data'
-        )
+def test_chat_stream_requires_auth(client):
+    """Test chat stream requires authentication"""
+    response = client.post('/api/chat/stream', json={'message': 'test'})
+    assert response.status_code in [401, 403, 302]
+```
+
+### Example: Testing with Authentication
+
+```python
+def test_get_conversations(authenticated_client, app, test_user):
+    """Test getting user's conversations"""
+    with app.app_context():
+        test_user = db.session.merge(test_user)
+        # Setup test data
+    
+    response = authenticated_client.get('/api/conversations')
     assert response.status_code == 200
-    assert response.json['success'] == True
+    data = json.loads(response.data)
+    assert isinstance(data, list)
 ```
 
 ### Example: Testing Database Models
 
 ```python
-def test_user_creation(app):
-    """Test user creation"""
+def test_create_user(app):
+    """Test creating a user"""
     with app.app_context():
-        user = User(username='testuser', email='test@example.com')
+        user = User(username='newuser', email='newuser@example.com')
         user.set_password('password123')
         db.session.add(user)
         db.session.commit()
@@ -149,57 +123,56 @@ def test_user_creation(app):
         assert user.check_password('password123')
 ```
 
+## Best Practices
+
+1. **Use fixtures** for common setup (test_user, authenticated_client, etc.)
+2. **Merge fixtures** when accessing in app context: `db.session.merge(test_user)`
+3. **Clean up data** before creating new test data to avoid conflicts
+4. **Consume streams** when testing streaming endpoints to prevent hanging
+5. **Use descriptive test names** that explain what is being tested
+6. **Keep tests isolated** - each test should be independent
+7. **Test edge cases** - not just happy paths
+
 ## Troubleshooting
 
 ### Tests Fail with Database Errors
-- Ensure test database is properly configured
-- Check that `conftest.py` is using in-memory SQLite
-- Verify fixtures are working correctly
 
-### Tests Fail with Import Errors
+- Ensure fixtures are properly merging objects: `db.session.merge(test_user)`
+- Check that test data is cleaned up before creating new data
+- Verify database session is properly managed
+
+### Tests Hang/Don't Exit
+
+- The test suite includes forced exit mechanism - if tests hang, check for:
+  - Unconsumed streaming responses (use `consume_stream()` helper)
+  - Background threads from third-party libraries
+  - Database connections not being closed
+
+### Import Errors
+
 - Make sure all dependencies are installed in the container
-- Check that the test files are in the correct location
+- Check that test files are in the `tests/` directory
 - Verify Python path includes the project root
 
-### Tests Timeout
-- Check if database container is running
-- Verify network connectivity between containers
-- Increase timeout values if needed
+## Test Coverage
 
-### Coverage Report Not Generated
-- Make sure `pytest-cov` is installed
-- Check that `--cov` flags are correct
-- Verify output directory permissions
-
-## CI/CD Integration
-
-Tests are automatically run in CI/CD pipeline (`.github/workflows/ci.yml`):
-
-- Runs on every push and pull request
-- Uses PostgreSQL service in GitHub Actions
-- Generates coverage reports
-- Uploads coverage to Codecov
-
-## Best Practices
-
-1. **Use fixtures** for common setup/teardown
-2. **Mock external services** (Pinecone, Gemini) in tests
-3. **Use descriptive test names** that explain what is being tested
-4. **Keep tests isolated** - each test should be independent
-5. **Clean up after tests** - use fixtures for cleanup
-6. **Test edge cases** - not just happy paths
-7. **Use assertions** that provide clear error messages
-
-## Running Tests During Development
+Generate coverage report:
 
 ```bash
-# Watch mode (requires pytest-watch)
-docker-compose exec app ptw
+# Generate HTML coverage report
+docker-compose exec app pytest --cov=src --cov=app --cov-report=html
 
-# Run only failed tests from last run
-docker-compose exec app pytest --lf
-
-# Run tests in parallel (requires pytest-xdist)
-docker-compose exec app pytest -n auto
+# Coverage report will be in htmlcov/index.html
 ```
 
+View coverage in terminal:
+
+```bash
+docker-compose exec app pytest --cov=src --cov=app --cov-report=term
+```
+
+## Notes
+
+- Tests use mocked external services to avoid API costs and ensure fast execution
+- The test suite automatically forces exit after completion to prevent hanging
+- All tests run in isolation with a fresh in-memory database

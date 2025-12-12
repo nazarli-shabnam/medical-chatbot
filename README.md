@@ -222,10 +222,17 @@ If you see `404 models/gemini-pro is not found`:
 
 For more troubleshooting tips, see [DOCKER_SETUP.md](DOCKER_SETUP.md).
 
-## 🧪 CI/CD
+## 🧪 Testing
 
-- **CI**: `.github/workflows/ci.yml` - Runs tests on push/PR
-- **CD**: `.github/workflows/cd.yml` - Builds and pushes Docker image
+Run tests with:
+
+```bash
+docker-compose exec app pytest
+```
+
+**Note:** The tests directory is mounted, so you can edit tests and run them immediately without restarting. Only restart the container if tests are hanging or using cached files.
+
+For more details, see [TESTING.md](TESTING.md).
 
 ## 🤝 Contributing
 
