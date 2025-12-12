@@ -234,13 +234,125 @@ docker-compose exec app pytest
 
 For more details, see [TESTING.md](TESTING.md).
 
+## 🔄 CI/CD
+
+This project uses **GitHub Actions** for continuous integration and continuous delivery. Both workflows are automatically triggered on pushes to the `main` branch.
+
+### Continuous Integration (CI)
+
+#### What the CI Does
+
+1. **Build & Test**: Sets up Python 3.10 and PostgreSQL 15
+2. **Install Dependencies**: Installs all requirements and removes deprecated packages
+3. **Run Tests**: Executes the full test suite with pytest
+4. **Generate Coverage**: Creates code coverage reports
+5. **Upload Coverage**: Uploads coverage to Codecov (optional)
+
+#### CI Workflow
+
+The workflow file is located at `.github/workflows/ci.yml`. It:
+
+- **Triggers**: Runs on pushes and pull requests to `main` branch
+- **Database**: Uses PostgreSQL 15 as a service container
+- **Tests**: Runs full pytest test suite with coverage reporting
+- **Output**: Generates coverage reports in XML and HTML formats
+
+### Continuous Delivery (CD)
+
+#### What the CD Does
+
+1. **Build Docker Image**: Creates a production-ready Docker image
+2. **Push to Registry**: Uploads the image to GitHub Container Registry (ghcr.io)
+3. **Tag Images**: Tags with `latest` and the commit SHA for versioning
+
+#### CD Workflow
+
+The workflow file is located at `.github/workflows/cd.yml`. It:
+
+- **Triggers**: Runs only on pushes to `main` branch (after CI passes)
+- **Registry**: Pushes to GitHub Container Registry (`ghcr.io`)
+- **Image Tags**:
+  - `ghcr.io/[owner]/medical-chatbot:latest` - Always points to latest
+  - `ghcr.io/[owner]/medical-chatbot:[commit-sha]` - Specific version
+- **Caching**: Uses Docker layer caching for faster builds
+
+#### Pulling the CD Image
+
+After CD runs, you can pull the image:
+
+```bash
+echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+
+# Pull the latest image
+docker pull ghcr.io/[your-username]/medical-chatbot:latest
+
+# Or pull a specific version
+docker pull ghcr.io/[your-username]/medical-chatbot:[commit-sha]
+```
+
+### Setting Up GitHub Secrets
+
+**Required Secrets** (must be set manually):
+
+1. Go to your GitHub repository → **Settings** → **Secrets and variables** → **Actions**
+2. Click **New repository secret**
+3. Add these secrets:
+
+   - **`PINECONE_API_KEY`**
+
+     - **Purpose**: Required for CI tests (mocked in tests, but still needed)
+     - **Where to get**: [Pinecone Console](https://app.pinecone.io/)
+     - **Required for**: CI workflow
+
+   - **`GOOGLE_API_KEY`**
+     - **Purpose**: Required for CI tests (mocked in tests, but still needed)
+     - **Where to get**: [Google AI Studio](https://makersuite.google.com/app/apikey)
+     - **Required for**: CI workflow
+
+**Automatic Secrets** (no action needed):
+
+- **`GITHUB_TOKEN`**: Automatically provided by GitHub Actions
+  - **Purpose**: Used by CD workflow to push to GitHub Container Registry
+  - **No setup required**: GitHub automatically provides this token
+
+### Workflow Summary
+
+| Workflow | Trigger           | Purpose                       | Secrets Needed                       |
+| -------- | ----------------- | ----------------------------- | ------------------------------------ |
+| **CI**   | Push/PR to `main` | Run tests & generate coverage | `PINECONE_API_KEY`, `GOOGLE_API_KEY` |
+| **CD**   | Push to `main`    | Build & push Docker image     | `GITHUB_TOKEN` (automatic)           |
+
+### Viewing Workflow Results
+
+- **Check Status**: Go to the **Actions** tab in your GitHub repository
+- **CI Results**: View test results, coverage reports, and any failures
+- **CD Results**: See Docker image build logs and registry push status
+- **Coverage**: Reports are uploaded to Codecov (if configured)
+
+### Troubleshooting
+
+**CI fails with "secret not found"**:
+
+- Ensure `PINECONE_API_KEY` and `GOOGLE_API_KEY` are set in repository secrets
+- Check that secrets are spelled exactly as shown (case-sensitive)
+
+**CD fails with authentication error**:
+
+- `GITHUB_TOKEN` is automatic - no setup needed
+- If issues persist, check repository permissions in Settings → Actions → General
+
+**CD image not accessible**:
+
+- Make sure the repository is public, OR
+- Set package visibility: Go to repository → Packages → medical-chatbot → Package settings → Change visibility
+
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
 4. Run tests: `docker-compose exec app pytest`
-5. Submit a pull request
+5. Submit a pull request (CI will automatically run tests)
 
 ## 📞 Support
 
