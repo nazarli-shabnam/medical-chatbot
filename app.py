@@ -17,7 +17,8 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 import tempfile
 
-IS_TESTING = os.environ.get("TESTING") == "1" or os.environ.get("PYTEST_CURRENT_TEST") is not None
+IS_TESTING = os.environ.get("TESTING") == "1" or os.environ.get(
+    "PYTEST_CURRENT_TEST") is not None
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get(
@@ -31,7 +32,8 @@ if not database_url:
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = tempfile.mkdtemp() if IS_TESTING else 'data/uploads'
+app.config['UPLOAD_FOLDER'] = tempfile.mkdtemp(
+) if IS_TESTING else 'data/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -57,24 +59,25 @@ if IS_TESTING:
     from langchain_core.runnables import Runnable
     from langchain_core.runnables.utils import Input, Output
     from typing import Any
-    
+
     class _DummyLLM(Runnable[Input, Output]):
         """Dummy LLM for testing that implements Runnable interface"""
+
         def invoke(self, input: Input, config: Any = None, **kwargs: Any) -> Output:
             if isinstance(input, dict):
                 return "Test response"
             elif isinstance(input, str):
                 return "Test response"
             return "Test response"
-        
+
         def __or__(self, other):
             from langchain_core.runnables import RunnableSequence
             return RunnableSequence(self, other)
-        
+
         def __ror__(self, other):
             from langchain_core.runnables import RunnableSequence
             return RunnableSequence(other, self)
-    
+
     class _DummyRetriever:
         def invoke(self, query):
             return []
@@ -96,25 +99,42 @@ else:
     os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
     os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
-    embeddings = download_hugging_face_embeddings()
+    print("Initializing embeddings model...")
+    try:
+        embeddings = download_hugging_face_embeddings()
+        print("✓ Embeddings model loaded successfully")
+    except Exception as e:
+        print(f"✗ Failed to load embeddings model: {e}")
+        raise
+
     index_name = "medical-chatbot"
 
     GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
-    llm = ChatGoogleGenerativeAI(
-        model=GEMINI_MODEL,
-        temperature=0.7,
-        google_api_key=GOOGLE_API_KEY
-    )
-    print(f"Using Gemini model: {GEMINI_MODEL}")
+    print(f"Initializing Gemini LLM (model: {GEMINI_MODEL})...")
+    try:
+        llm = ChatGoogleGenerativeAI(
+            model=GEMINI_MODEL,
+            temperature=0.7,
+            google_api_key=GOOGLE_API_KEY
+        )
+        print(f"✓ Gemini LLM initialized successfully")
+    except Exception as e:
+        print(f"✗ Failed to initialize Gemini LLM: {e}")
+        raise
 
-    docsearch = PineconeVectorStore.from_existing_index(
-        index_name=index_name,
-        embedding=embeddings
-    )
-
-    retriever = docsearch.as_retriever(
-        search_type="similarity", search_kwargs={"k": 5})
-
+    print("Connecting to Pinecone vector store...")
+    try:
+        docsearch = PineconeVectorStore.from_existing_index(
+            index_name=index_name,
+            embedding=embeddings
+        )
+        retriever = docsearch.as_retriever(
+            search_type="similarity", search_kwargs={"k": 5})
+        print("✓ Pinecone connection established successfully")
+    except Exception as e:
+        print(f"✗ Failed to connect to Pinecone: {e}")
+        print("  Make sure your PINECONE_API_KEY is valid and the index 'medical-chatbot' exists")
+        raise
 
 
 @app.route("/")
@@ -148,29 +168,33 @@ def documents():
             if os.path.exists(doc.file_path):
                 existing_docs.append(doc)
             else:
-                print(f"Document {doc.id} ({doc.original_filename}) file not found at {doc.file_path}, cleaning up database")
+                print(
+                    f"Document {doc.id} ({doc.original_filename}) file not found at {doc.file_path}, cleaning up database")
                 try:
                     from src.database import Citation
-                    
-                    doc_citations = Citation.query.filter_by(document_id=doc.id).all()
-                    
-                    chunk_ids = [chunk.id for chunk in doc.chunks] if doc.chunks else []
-                    
+
+                    doc_citations = Citation.query.filter_by(
+                        document_id=doc.id).all()
+
+                    chunk_ids = [
+                        chunk.id for chunk in doc.chunks] if doc.chunks else []
+
                     chunk_citations = []
                     if chunk_ids:
-                        chunk_citations = Citation.query.filter(Citation.chunk_id.in_(chunk_ids)).all()
-                    
+                        chunk_citations = Citation.query.filter(
+                            Citation.chunk_id.in_(chunk_ids)).all()
+
                     all_citations = list(set(doc_citations + chunk_citations))
-                    
+
                     for citation in all_citations:
                         if citation.document_id == doc.id:
                             citation.document_id = None
                         if citation.chunk_id in chunk_ids:
                             citation.chunk_id = None
                         db.session.add(citation)
-                    
+
                     db.session.commit()
-                    
+
                     db.session.delete(doc)
                     db.session.commit()
                     print(f"Successfully cleaned up document {doc.id}")
@@ -180,7 +204,7 @@ def documents():
                     print(traceback.format_exc())
                     db.session.rollback()
                     continue
-    
+
     return render_template('documents.html', documents=existing_docs)
 
 
@@ -231,7 +255,8 @@ def chat_stream():
 
             allowed_user_ids = {str(user_id), "global", None}
 
-            user_docs = Document.query.filter_by(user_id=user_id, is_indexed=True).all()
+            user_docs = Document.query.filter_by(
+                user_id=user_id, is_indexed=True).all()
             user_retriever = docsearch.as_retriever(
                 search_type="similarity",
                 search_kwargs={
@@ -242,7 +267,8 @@ def chat_stream():
 
             base_retriever = retriever
 
-            print(f"Retrievers ready. User docs: {len(user_docs)}. Using global + user-specific retrieval.")
+            print(
+                f"Retrievers ready. User docs: {len(user_docs)}. Using global + user-specific retrieval.")
 
             def filter_allowed(docs):
                 filtered = [
@@ -250,7 +276,7 @@ def chat_stream():
                     if d.metadata.get('user_id') in allowed_user_ids
                 ]
                 return filtered
-            
+
             if use_advanced_rag:
                 def filtered_retrieve(query):
                     docs = []
@@ -260,9 +286,10 @@ def chat_stream():
                         user_docs_res = user_retriever.invoke(query)
                         docs.extend(filter_allowed(user_docs_res))
 
-                    print(f"Advanced RAG: Retrieved {len(docs)} combined docs (global + user) for user {user_id}")
+                    print(
+                        f"Advanced RAG: Retrieved {len(docs)} combined docs (global + user) for user {user_id}")
                     return docs
-                
+
                 result = multi_hop_reasoning(
                     llm, filtered_retrieve, user_message, max_hops=2)
                 retrieved_docs = result["context_used"]
@@ -281,8 +308,9 @@ def chat_stream():
                     user_docs_res = filter_allowed(user_docs_res)
                     retrieved_docs.extend(user_docs_res)
 
-                print(f"Retrieved {len(retrieved_docs)} documents total (global + user). Global: {len(base_docs)}, User: {len(user_docs_res) if user_retriever else 0}")
-                
+                print(
+                    f"Retrieved {len(retrieved_docs)} documents total (global + user). Global: {len(base_docs)}, User: {len(user_docs_res) if user_retriever else 0}")
+
                 for i, doc in enumerate(retrieved_docs[:3]):
                     print(f"  Doc {i+1}: source={doc.metadata.get('source', 'Unknown')}, user_id={doc.metadata.get('user_id', 'Unknown')}, document_id={doc.metadata.get('document_id', 'Unknown')}")
 
@@ -291,10 +319,12 @@ def chat_stream():
                         f"[Source {i+1}] {doc.page_content}\n(Source: {doc.metadata.get('source', 'Unknown')}, Page: {doc.metadata.get('page', 'N/A')})"
                         for i, doc in enumerate(retrieved_docs)
                     ])
-                    print(f"Formatted context length: {len(formatted_context)} characters from {len(retrieved_docs)} documents")
+                    print(
+                        f"Formatted context length: {len(formatted_context)} characters from {len(retrieved_docs)} documents")
                 else:
                     formatted_context = "No relevant documents found in the uploaded files."
-                    print(f"WARNING: No documents retrieved for user {user_id}")
+                    print(
+                        f"WARNING: No documents retrieved for user {user_id}")
 
                 prompt = ChatPromptTemplate.from_messages([
                     ("system", system_prompt_with_citations),
@@ -325,7 +355,7 @@ def chat_stream():
 
                 doc_id = None
                 chunk_id = None
-                
+
                 doc_obj = Document.query.filter_by(file_path=source).first()
                 if doc_obj:
                     doc_id = doc_obj.id
@@ -457,14 +487,14 @@ def upload_document():
     print(f"Request method: {request.method}")
     print(f"Request content type: {request.content_type}")
     print(f"Files in request: {list(request.files.keys())}")
-    
+
     if 'file' not in request.files:
         print("Upload error: No file in request.files")
         return jsonify({"error": "No file provided"}), 400
 
     file = request.files['file']
     print(f"File received: {file.filename}, Content type: {file.content_type}")
-    
+
     if file.filename == '':
         print("Upload error: Empty filename")
         return jsonify({"error": "No file selected"}), 400
@@ -476,7 +506,7 @@ def upload_document():
     filename = secure_filename(file.filename)
     unique_filename = f"{uuid.uuid4()}_{filename}"
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-    
+
     print(f"Uploading file: {filename} -> {file_path}")
     file.save(file_path)
     print(f"File saved successfully: {os.path.exists(file_path)}")
@@ -486,14 +516,15 @@ def upload_document():
         documents = load_single_pdf(file_path)
         print(f"Loaded {len(documents)} documents from PDF")
         if documents:
-            print(f"First document preview: {documents[0].page_content[:200]}...")
-        
+            print(
+                f"First document preview: {documents[0].page_content[:200]}...")
+
         filtered_docs = filter_to_minimal_docs(documents)
         print(f"After filtering: {len(filtered_docs)} documents")
-        
+
         text_chunks = text_split(filtered_docs)
         print(f"After text splitting: {len(text_chunks)} chunks")
-        
+
         if len(text_chunks) == 0:
             print(f"ERROR: No text chunks created! PDF might be empty or corrupted.")
             return jsonify({"error": "PDF appears to be empty or could not be processed. Please check the file."}), 400
@@ -519,9 +550,9 @@ def upload_document():
             )
             chunk_objects.append(chunk_obj)
             db.session.add(chunk_obj)
-        
+
         db.session.flush()
-        
+
         for chunk_obj in chunk_objects:
             if chunk_obj.id is None:
                 print(f"Warning: chunk_obj.id is None after flush!")
@@ -538,8 +569,9 @@ def upload_document():
             clean_metadata = {}
 
             original_source = chunk.metadata.get('source', file_path)
-            clean_metadata['source'] = str(original_source) if original_source else str(file_path)
-            
+            clean_metadata['source'] = str(
+                original_source) if original_source else str(file_path)
+
             for key, value in chunk.metadata.items():
                 if key == 'source':
                     continue
@@ -547,21 +579,25 @@ def upload_document():
                     if isinstance(value, (str, int, float, bool)):
                         clean_metadata[key] = value
                     elif isinstance(value, list):
-                        clean_metadata[key] = [str(v) for v in value if v is not None]
-            
+                        clean_metadata[key] = [str(v)
+                                               for v in value if v is not None]
+
             clean_metadata['document_id'] = str(doc.id)
             if chunk_obj.id is not None:
                 clean_metadata['chunk_id'] = str(chunk_obj.id)
             clean_metadata['user_id'] = str(current_user.id)
-            
-            page = clean_metadata.get('page', chunk.metadata.get('page', 0))
-            clean_metadata['page'] = int(page) if isinstance(page, (int, float)) else 0
-            
-            chunk.metadata = clean_metadata
-            
-            print(f"Chunk metadata: source={clean_metadata.get('source')}, document_id={clean_metadata.get('document_id')}, user_id={clean_metadata.get('user_id')}, page={clean_metadata.get('page')}")
 
-        print(f"Adding {len(text_chunks)} chunks to Pinecone for user {current_user.id}")
+            page = clean_metadata.get('page', chunk.metadata.get('page', 0))
+            clean_metadata['page'] = int(page) if isinstance(
+                page, (int, float)) else 0
+
+            chunk.metadata = clean_metadata
+
+            print(
+                f"Chunk metadata: source={clean_metadata.get('source')}, document_id={clean_metadata.get('document_id')}, user_id={clean_metadata.get('user_id')}, page={clean_metadata.get('page')}")
+
+        print(
+            f"Adding {len(text_chunks)} chunks to Pinecone for user {current_user.id}")
         vector_store.add_documents(text_chunks)
         print(f"Successfully added documents to Pinecone")
 
@@ -600,37 +636,39 @@ def delete_document(doc_id):
 
     try:
         from src.database import Citation
-        
+
         citations = Citation.query.filter_by(document_id=doc.id).all()
-        
+
         chunk_ids = [chunk.id for chunk in doc.chunks]
-        
+
         if chunk_ids:
-            chunk_citations = Citation.query.filter(Citation.chunk_id.in_(chunk_ids)).all()
+            chunk_citations = Citation.query.filter(
+                Citation.chunk_id.in_(chunk_ids)).all()
             all_citations = list(set(citations + chunk_citations))
         else:
             all_citations = citations
-        
+
         for citation in all_citations:
             if citation.chunk_id in chunk_ids:
                 citation.chunk_id = None
             if citation.document_id == doc.id:
                 citation.document_id = None
             db.session.add(citation)
-        
+
         db.session.flush()
-        
+
         try:
             from pinecone import Pinecone
             pc = Pinecone(api_key=PINECONE_API_KEY)
             index = pc.Index(index_name)
-            
+
             delete_filter = {
                 "document_id": str(doc.id)
             }
             print(f"Deleting vectors from Pinecone for document_id={doc.id}")
             index.delete(filter=delete_filter)
-            print(f"Successfully deleted vectors from Pinecone for document {doc.id}")
+            print(
+                f"Successfully deleted vectors from Pinecone for document {doc.id}")
         except Exception as e:
             print(f"Warning: Could not delete vectors from Pinecone: {e}")
         if os.path.exists(doc.file_path):
@@ -656,64 +694,68 @@ def cleanup_pinecone():
     """Clean up orphaned vectors in Pinecone (vectors without corresponding documents in DB)"""
     try:
         from pinecone import Pinecone
-        
+
         user_docs = Document.query.filter_by(user_id=current_user.id).all()
         valid_document_ids = {str(doc.id) for doc in user_docs}
-        
+
         print(f"Cleaning up Pinecone for user {current_user.id}")
-        print(f"Found {len(user_docs)} documents to delete (all user documents)")
-        
+        print(
+            f"Found {len(user_docs)} documents to delete (all user documents)")
+
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index = pc.Index(index_name)
-        
+
         user_filter = {"user_id": str(current_user.id)}
-        
+
         deleted_count = 0
-        
+
         print(f"Deleting all vectors for user {current_user.id} from Pinecone")
         index.delete(filter=user_filter)
         print(f"Deleted all vectors for user {current_user.id}")
-        
+
         from src.database import Citation
-        
+
         deleted_count = 0
         for doc in user_docs:
             citations = Citation.query.filter_by(document_id=doc.id).all()
-            
-            chunk_ids = [chunk.id for chunk in doc.chunks] if doc.chunks else []
-            
+
+            chunk_ids = [
+                chunk.id for chunk in doc.chunks] if doc.chunks else []
+
             if chunk_ids:
-                chunk_citations = Citation.query.filter(Citation.chunk_id.in_(chunk_ids)).all()
+                chunk_citations = Citation.query.filter(
+                    Citation.chunk_id.in_(chunk_ids)).all()
                 all_citations = list(set(citations + chunk_citations))
             else:
                 all_citations = citations
-            
+
             for citation in all_citations:
                 if citation.document_id == doc.id:
                     citation.document_id = None
                 if citation.chunk_id in chunk_ids:
                     citation.chunk_id = None
                 db.session.add(citation)
-            
+
             if os.path.exists(doc.file_path):
                 try:
                     os.remove(doc.file_path)
                     print(f"Deleted file: {doc.file_path}")
                 except Exception as e:
-                    print(f"Warning: Could not delete file {doc.file_path}: {e}")
-            
+                    print(
+                        f"Warning: Could not delete file {doc.file_path}: {e}")
+
             db.session.delete(doc)
             deleted_count += 1
-        
+
         db.session.commit()
         print(f"Deleted {deleted_count} documents from database")
-        
+
         return jsonify({
             "success": True,
             "message": f"Cleaned up Pinecone and deleted {deleted_count} document(s) from your account.",
             "deleted_count": deleted_count
         })
-        
+
     except Exception as e:
         import traceback
         error_msg = str(e)
@@ -761,8 +803,20 @@ def submit_feedback():
     return jsonify({"success": True})
 
 
+# Initialize database tables
 with app.app_context():
-    db.create_all()
+    try:
+        print("Initializing database...")
+        db.create_all()
+        print("✓ Database initialized successfully")
+    except Exception as e:
+        print(f"✗ Failed to initialize database: {e}")
+        print("  Make sure DATABASE_URL is set correctly and the database is accessible")
+        raise
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    # Use PORT environment variable if available (for Render, Heroku, etc.), otherwise default to 8080
+    port = int(os.environ.get('PORT', 8080))
+    # Only use debug mode if explicitly set (not in production)
+    debug = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(host="0.0.0.0", port=port, debug=debug)

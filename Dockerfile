@@ -27,12 +27,15 @@ COPY . .
 # Create upload directory
 RUN mkdir -p data/uploads
 
-# Expose port
+# Expose port (default, but will use PORT env var if set)
 EXPOSE 8080
 
 # Health check (using urllib instead of requests for reliability)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/')" || exit 1
+# Use PORT env var if available, otherwise default to 8080
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python -c "import os, urllib.request; port = os.environ.get('PORT', '8080'); urllib.request.urlopen(f'http://localhost:{port}/')" || exit 1
 
-# Run the application
-CMD ["python", "app.py"]
+# Run the application with Gunicorn for production
+# Gunicorn will use PORT environment variable if set (Render, Heroku, etc.)
+# Otherwise defaults to 8080
+CMD ["gunicorn", "--bind", "0.0.0.0:${PORT:-8080}", "--workers", "2", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
