@@ -38,4 +38,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 # Run the application with Gunicorn for production
 # Gunicorn will use PORT environment variable if set (Render, Heroku, etc.)
 # Otherwise defaults to 8080
-CMD ["gunicorn", "--bind", "0.0.0.0:${PORT:-8080}", "--workers", "2", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
+# Using shell form to allow variable expansion
+CMD gunicorn --bind "0.0.0.0:${PORT:-8080}" --workers 2 --timeout 120 --access-logfile - --error-logfile - app:app
